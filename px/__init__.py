@@ -7,7 +7,7 @@ from urllib.request import Request
 import hmac
 import hashlib
 import logging as log
-import datetime
+from datetime import datetime
 
 
 class PxApi:
@@ -88,7 +88,7 @@ class PxApi:
                           start),
                 'end': (now + 60) if stop is None else stop})
         translated = (PxApi._translate_dataset(t)
-                      for t in PxApi._private_request(
+                      for t in PxApi._public_request(
                           'returnTradeHistory', request))
         cleaned = [e for e in translated
                    if e['amount'] > 0.000001 and e['total'] > 0.000001]

@@ -268,26 +268,26 @@ class TradeHistory:
         return 'TradeHistory(%r, duration=%.1f, len=%d)' % (
             self._market, self.get_duration() / 60, len(self._hdata))
 
-    def fetch_next(self, max_duration=None, only_old=False):
-        current_time = time.time()
+    def fetch_next(self, *, api, max_duration=None, only_old=False):
+        now = time.time()
         log.debug('update trade history for %r after %d seconds',
-                 self._market, current_time - self.last_time())
+                 self._market, now - self.last_time())
 
-        if self._hdata and current_time - self.last_time() > 6 * 3600:
+        if self._hdata and now - self.last_time() > 6 * 3600:
             # last update too long ago to fill the gap (for now)
             #self.clear()
             log.warning('big gap')
 
         if not self._hdata:
             log.debug('fetch_next: there is no data yet - fetch an hour')
-            start = 0 if max_duration else current_time - self._step_size_sec
+            start = 0 if max_duration else now - self._step_size_sec
             end = time.time() + 60
-        elif not only_old and current_time - self.last_time() > self._update_threshold_sec:
+        elif not only_old and now - self.last_time() > self._update_threshold_sec:
             log.debug('fetch_next: more than a couple of seconds have passed '
                       'since last update - do an update now')
             start = self.last_time()
             end = time.time() + 60
-        elif current_time - self.first_time() < self._history_max_duration:
+        elif now - self.first_time() < self._history_max_duration:
             log.debug("fetch_next: we don't need to update recent parts of the "
                       "graph - fetch older data instead.")
             start = 0 if max_duration else self.first_time() - self._step_size_sec
@@ -302,7 +302,7 @@ class TradeHistory:
         except ValueError:
             log.warning(
                 'lists are discontiguous after update (%.2fh)- clear data',
-                (current_time - self.last_time()) / 3600)
+                (now - self.last_time()) / 3600)
             self.clear()
 
         return True
