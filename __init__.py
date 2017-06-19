@@ -1,4 +1,4 @@
-from util import get_EUR, json_mod
+from .util import get_EUR, json_mod
 
 import logging as log
 import threading
@@ -69,6 +69,25 @@ def sum_trades(history: list) -> tuple:
         min_rate = min(min_rate, t['rate'])
         max_rate = max(max_rate, t['rate'])
     return total, amount, min_rate, max_rate
+
+
+def expand_bucket(bucket):
+    amount = bucket['amount_buy'] + bucket['amount_sell']
+    total = bucket['total_buy'] + bucket['total_sell']
+    return {**bucket, **{
+        'amount': amount,
+        'total': total,
+        'rate': total / amount,
+    }}
+
+
+def extract_coin_data(ticker_data):
+    coins = {}
+    for m in ticker_data:
+        c1, c2 = m.split('_')
+        if not c1 in coins: coins[c1] = set()
+        coins[c1].add(c2)
+    return coins
 
 
 class TraderData:
@@ -278,7 +297,7 @@ class TradeHistory:
             return False
 
         try:
-            self._attach_data(Api.get_trade_history(
+            self._attach_data(api.get_trade_history(
                 *self._market.split('_'), start, end))
         except ValueError:
             log.warning(
@@ -301,6 +320,10 @@ class TradeHistory:
     def last_rate(self):
         if not self._hdata: return 0.
         return self._hdata[-1]['total'] / self._hdata[-1]['amount']
+
+    def get_current_rate(self):
+        total, amount, minr, maxr = sum_trades(self._hdata[-20:])
+        return total / amount, minr, maxr
 
     def last_time(self):
         if not self._hdata: return 0.
