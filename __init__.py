@@ -97,7 +97,8 @@ class TraderData:
         self._trade_history = {}
         self._eur_price = 0.
         self._open_orders = []
-        self._available_markets = {}
+        self._available_coins = {}
+        self._available_markets = set()
         self._market_history = {}
 
     def _called_from_same_thread(self):
@@ -114,7 +115,8 @@ class TraderData:
     def update_available_markets(self, api):
         assert(self._called_from_same_thread())
         ticker = api.get_ticker()
-        self._available_markets = api.extract_coin_data(ticker)
+        self._available_coins = extract_coin_data(ticker)
+        self._available_markets = set(ticker.keys())
 
     def update_balances(self, api):
         assert(self._called_from_same_thread())
@@ -136,6 +138,12 @@ class TraderData:
     def update_eur(self):
         assert(self._called_from_same_thread())
         self._eur_price = get_EUR()
+
+    def available_coins(self) -> dict:
+        return self._available_coins
+
+    def available_markets(self) -> set:
+        return self._available_markets
 
     def balances(self, market=None):
         return self._balances[market] if market else self._balances
@@ -176,7 +184,7 @@ class TraderData:
                     sell: tuple, buy: str,
                     suggestion_factor: float) -> dict:
         # ==> move to TraderStrategy
-        if not self._balances or not self._available_markets:
+        if not self._balances or not self._available_coins:
             raise RuntimeError('not ready')
 
         amount, what_to_sell = sell
@@ -191,12 +199,12 @@ class TraderData:
                 'You do not have enough %r to sell (just %f)' % (
                     what_to_sell, self._balances[what_to_sell]))
 
-        if (what_to_sell in self._available_markets and
-                buy in self._available_markets[what_to_sell]):
+        if (what_to_sell in self._available_coins and
+                buy in self._available_coins[what_to_sell]):
             market = what_to_sell + '_' + buy
             action = 'buy'
-        elif (buy in self._available_markets and
-                  what_to_sell in self._available_markets[buy]):
+        elif (buy in self._available_coins and
+                  what_to_sell in self._available_coins[buy]):
             market = buy + '_' + what_to_sell
             action = 'sell'
         else:
@@ -368,6 +376,7 @@ class TradeHistory:
                        merge(self._hdata, data))
 
     def get_plot_data(self, ema_factor=0.005, cut=50):
+        if not self._hdata: return [], []
         totals = [e['total'] for e in self._hdata]
         amounts = [e['amount'] for e in self._hdata]
         times = [e['time'] for e in self._hdata]
