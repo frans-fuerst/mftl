@@ -1,4 +1,10 @@
+from util import get_EUR, json_mod
+
+import logging as log
 import threading
+import os
+import time
+
 
 def get_long_name(short_name: str) -> str:
     try:
@@ -50,6 +56,19 @@ def vema(totals, amounts, a):
     smooth_totals = ema(totals, a)
     smooth_amounts = ema(amounts, a)
     return [t / c for t, c in zip(smooth_totals, smooth_amounts)]
+
+
+def sum_trades(history: list) -> tuple:
+    total = 0.0
+    amount = 0.0
+    min_rate = +99999999
+    max_rate = -99999999
+    for t in history:
+        total += t['total']
+        amount += t['amount']
+        min_rate = min(min_rate, t['rate'])
+        max_rate = max(max_rate, t['rate'])
+    return total, amount, min_rate, max_rate
 
 
 class TraderData:
@@ -114,7 +133,7 @@ class TraderData:
     def load(self):
         try:
             with open('personal.json') as f:
-                personal_data = json.load(f)
+                personal_data = json_mod.load(f)
                 self._balances = personal_data['balances']
                 self._trade_history = personal_data['trade_history']
         except FileNotFoundError:
@@ -123,7 +142,7 @@ class TraderData:
     def save(self):
         #        os.makedirs('personal', exist_ok=True)
         with open('personal.json', 'w') as f:
-            json.dump({'balances': self._balances,
+            json_mod.dump({'balances': self._balances,
                        'trade_history': self._trade_history}, f)
 
     def get_current_rate(self, market):
@@ -198,14 +217,14 @@ class TradeHistory:
         return self._market
 
     def friendly_name(self):
-        return '/'.join(get_full_name(c) for c in self._market.split('_'))
+        return '/'.join(get_long_name(c) for c in self._market.split('_'))
 
     def load(self, directory='.'):
         try:
             filename = os.path.join(
                 directory, 'trade_history-%s.json' % self._market)
             with open(filename) as f:
-                self._hdata = json.load(f)
+                self._hdata = json_mod.load(f)
         except FileNotFoundError:
             pass
         except ValueError as exc:
@@ -218,7 +237,7 @@ class TradeHistory:
             directory, 'trade_history-%s.json' % self._market)
         os.makedirs(directory, exist_ok=True)
         with open(filename, 'w') as f:
-            json.dump(self._hdata, f)
+            json_mod.dump(self._hdata, f)
 
     def clear(self):
         self._hdata = []
@@ -243,12 +262,12 @@ class TradeHistory:
         if not self._hdata:
             log.debug('fetch_next: there is no data yet - fetch an hour')
             start = 0 if max_duration else current_time - self._step_size_sec
-            end = MOST_RECENTLY
+            end = time.time() + 60
         elif not only_old and current_time - self.last_time() > self._update_threshold_sec:
             log.debug('fetch_next: more than a couple of seconds have passed '
                       'since last update - do an update now')
             start = self.last_time()
-            end = MOST_RECENTLY
+            end = time.time() + 60
         elif current_time - self.first_time() < self._history_max_duration:
             log.debug("fetch_next: we don't need to update recent parts of the "
                       "graph - fetch older data instead.")
