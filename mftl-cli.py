@@ -9,6 +9,35 @@ import time
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import mftl
 import mftl.px
+import mftl.qwtgraph
+
+
+def show_curve(market):
+    now = time.time()
+
+    th = mftl.TradeHistory(market)
+    th.load()
+    if not th.count(): return
+
+    print('%r, #trades: %d, duration: %.1fh' % (
+        market, th.count(), th.get_duration() / 3600))
+
+    data = th.data()
+
+    trade_rates = [e['total'] / e['amount'] for e in data]
+    trade_times = [e['time'] - now for e in data]
+
+    # generate 5min-buckets
+    candlestick_data = th.rate_buckets()
+    times2 = [e['time'] - now for e in candlestick_data]
+    rates2 = [(e['total_sell'] + e['total_buy']) /
+              (e['amount_sell'] + e['amount_buy']) for e in candlestick_data]
+
+    w = mftl.qwtgraph.GraphUI()
+    w.set_data(trade_times, trade_rates, 'gray')
+    w.set_data(times2, rates2, 'fat_blue')
+
+    w.show()
 
 
 def get_args() -> dict:
@@ -38,6 +67,14 @@ def main():
         min_duration = int(args.arg2) if args.arg2 else 3600
         while history.get_duration() < min_duration:
             history.fetch_next(api=api)
+
+    elif args.cmd == 'show':
+        with mftl.qwtgraph.qtapp() as app:
+            for f in os.listdir('..'):
+                if not f.startswith('trade_history'): continue
+                show_curve(f.split('.')[0].split('-')[1])
+            app.run()
+
 
 
 if __name__ == '__main__':
