@@ -1,0 +1,6 @@
+- [ ] TradingHistory: use pandas
+- [ ] TradingHistory: write htf
+- [ ] TradingHistory: fill large gaps
+- [ ] TraderData: write balance history
+- [ ] TraderData: persist trades / balances
+- [ ] TraderData: persist order / trades
