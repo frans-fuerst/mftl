@@ -52,21 +52,26 @@ def get_args() -> dict:
     return parser.parse_args()
 
 
-def main():
-    args = get_args()
-    log.basicConfig(level=log.DEBUG if args.verbose else log.INFO)
-    mftl.util.ALLOW_CACHED_VALUES = 'ALLOW' if args.allow_cached else 'NEVER'
+def create_personal_px_instance():
     try:
-        api = mftl.px.PxApi(**ast.literal_eval(open('../k').read()))
+        return mftl.px.PxApi(**ast.literal_eval(open('../k').read()))
     except FileNotFoundError:
         log.warning('did not find key file - only public access is possible')
         raise
 
+
+def main():
+    args = get_args()
+    log.basicConfig(level=log.DEBUG if args.verbose else log.INFO)
+    mftl.util.ALLOW_CACHED_VALUES = 'ALLOW' if args.allow_cached else 'NEVER'
+
     if args.cmd == 'fetch':
         market = args.arg1
         history = mftl.TradeHistory(args.arg1)
+        history.load()
         min_duration = int(args.arg2) if args.arg2 else 3600
         while history.get_duration() < min_duration:
+            print('fetch..')
             history.fetch_next(api=mftl.px.PxApi)
         history.save()
         print('%r, #trades: %d, duration: %.1fh' % (
