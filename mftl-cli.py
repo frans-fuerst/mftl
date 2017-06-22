@@ -71,15 +71,20 @@ def main():
         history.load()
         min_duration = int(args.arg2) if args.arg2 else 3600
         while history.get_duration() < min_duration:
-            print('fetch..')
-            history.fetch_next(api=mftl.px.PxApi)
+            print('fetch %r trade history (current: %.1fh)..' % (
+                market,  history.get_duration() / 3600))
+            try:
+                history.fetch_next(api=mftl.px.PxApi)
+            except mftl.util.ServerError as exc:
+                log.warning('error occured: %r', exc)
+                time.sleep(1)
         history.save()
         print('%r, #trades: %d, duration: %.1fh' % (
             market, history.count(), history.get_duration() / 3600))
 
     elif args.cmd == 'show':
         with mftl.qwtgraph.qtapp() as app:
-            for f in os.listdir('..'):
+            for f in os.listdir():
                 if not f.startswith('trade_history'): continue
                 show_curve(f.split('.')[0].split('-')[1])
             app.run()
