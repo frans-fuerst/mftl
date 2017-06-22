@@ -14,9 +14,11 @@ def easypen(pen):
             'blue': Qt.QPen(Qt.Qt.blue, 1, Qt.Qt.SolidLine),
             'red': Qt.QPen(Qt.Qt.red, 1, Qt.Qt.SolidLine),
             'green': Qt.QPen(Qt.Qt.green, 1, Qt.Qt.SolidLine),
+            'gray': Qt.QPen(Qt.Qt.gray, 1, Qt.Qt.SolidLine),
             'fat_blue': Qt.QPen(Qt.Qt.blue, 2, Qt.Qt.SolidLine),
             'fat_red': Qt.QPen(Qt.Qt.red, 2, Qt.Qt.SolidLine),
             'fat_green': Qt.QPen(Qt.Qt.green, 2, Qt.Qt.SolidLine),
+            'fat_gray': Qt.QPen(Qt.Qt.gray, 2, Qt.Qt.SolidLine),
             None: Qt.QPen(Qt.Qt.black, 1, Qt.Qt.SolidLine),
             }[pen]
     except:
