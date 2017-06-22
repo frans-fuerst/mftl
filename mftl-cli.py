@@ -63,10 +63,14 @@ def main():
         raise
 
     if args.cmd == 'fetch':
+        market = args.arg1
         history = mftl.TradeHistory(args.arg1)
         min_duration = int(args.arg2) if args.arg2 else 3600
         while history.get_duration() < min_duration:
-            history.fetch_next(api=api)
+            history.fetch_next(api=mftl.px.PxApi)
+        history.save()
+        print('%r, #trades: %d, duration: %.1fh' % (
+            market, history.count(), history.get_duration() / 3600))
 
     elif args.cmd == 'show':
         with mftl.qwtgraph.qtapp() as app:
