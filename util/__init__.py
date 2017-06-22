@@ -26,7 +26,8 @@ def set_proxies(proxies):
 
 def get_unique_name(data: dict) -> str:
     ''' turn dict into unambiguous string '''
-    return ('.'.join('%s=%s' % (k, 'xxx' if k in {'start', 'nonce'} else v)
+    return ('.'.join('%s=%s' % (
+        k, 'xxx' if k in {'start', 'end', 'nonce'} else v)
                      for k, v in sorted(data.items()))
             .replace(',', '_')
             .replace('/', '_')
@@ -59,7 +60,7 @@ def fetch_http(request, request_data):
             log.warning('use chached values for %r', request)
             return file.read().decode()
     except FileNotFoundError as exc:
-        raise ServerError(repr(exc)) from exc
+        raise ServerError('could not load cached file %r' % exc.filename) from exc
 
 
 def get_EUR():
