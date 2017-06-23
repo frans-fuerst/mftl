@@ -172,6 +172,27 @@ class TraderData:
             json_mod.dump({'balances': self._balances,
                        'trade_history': self._trade_history}, f)
 
+    def get_asset_cost(self, coin):
+        ''' returns cost for given asset in BTC
+        '''
+        if not self._balances: return 0
+        if not coin in self._balances: return 0
+        if not self._trade_history: return 0
+        if coin == 'BTC': return 0
+        history = self._trade_history['BTC_' + coin]
+        print(list(self._trade_history.keys()))
+        print(coin, self._balances[coin])
+        a = 0
+        for h in history:
+#            if h['type'] == 'sell': continue
+#            assert h['type'] == 'buy'
+            print(h['time'], h['type'], h['amount'], h['total'])
+            a += h['amount'] if h['type'] == 'buy' else (-h['amount'])
+#            a -= h['fee']
+        print(a/self._balances[coin] -1)
+        return 0
+
+
     def get_current_rate(self, market):
         # ==> move to TraderStrategy
         try:
