@@ -127,8 +127,8 @@ class TraderData:
             self._last_thread = thread_id
         return self._last_thread == thread_id
 
-    def create_trade_history(self, market):
-        new_market = TradeHistory(market)
+    def create_trade_history(self, market, max_duration=24*3600):
+        new_market = TradeHistory(market, history_max_duration=max_duration)
         self._market_history[market] = new_market
         return new_market
 
@@ -314,8 +314,8 @@ class TradeHistory:
         return self.__repr__()
 
     def __repr__(self):
-        return 'TradeHistory(%r, duration=%.1f, len=%d)' % (
-            self._market, self.get_duration() / 60, len(self._hdata))
+        return 'TradeHistory(%r, duration=%.1fmin, len=%d)' % (
+            self._market, self.duration() / 60, len(self._hdata))
 
     def fetch_next(self, *, api, max_duration=None, only_old=False):
         now = time.time()
@@ -348,6 +348,7 @@ class TradeHistory:
         try:
             self._attach_data(api.get_trade_history(
                 *self._market.split('_'), start, end))
+            self._hdata = self.trim(self._hdata, self._history_max_duration)
         except ValueError:
             log.warning(
                 'lists are discontiguous after update (%.2fh)- clear data',
@@ -355,6 +356,23 @@ class TradeHistory:
             self.clear()
 
         return True
+
+    @staticmethod
+    def trim(data, duration):
+        if TradeHistory.list_duration(data) <= duration: return data
+        low = 0
+        high = len(data) - 1
+        current = high
+        wanted = data[high]['time'] - duration
+        while True:
+            if data[current]['time'] >= wanted:
+                high = current
+                current = (current + low) // 2
+            else:
+                low = current
+                current = (current + high) // 2
+            if high - low < 2:
+                return data[low:]
 
     def count(self):
         return len(self._hdata)
@@ -378,8 +396,12 @@ class TradeHistory:
         if not self._hdata: return 0.
         return self._hdata[-1]['time']
 
-    def get_duration(self):
-        return self.last_time() - self.first_time()
+    @staticmethod
+    def list_duration(data):
+        return data[-1]['time'] - data[0]['time']
+
+    def duration(self):
+        return self.list_duration(self._hdata)
 
     def _attach_data(self, data):
         if not data:
