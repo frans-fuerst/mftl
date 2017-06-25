@@ -37,6 +37,49 @@ def show_curve(market):
     w.set_data(trade_times, trade_rates, 'gray')
     w.set_data(times2, rates2, 'fat_blue')
 
+    rates_slow = mftl.sma(rates2, 100)
+    rates_fast = mftl.sma(rates2, 50)
+    times2, rates2, rates_fast, rates_slow = mftl.trim(times2, rates2, rates_fast, rates_slow)
+    print(len(times2), len(rates2), len(rates_fast), len(rates_slow))
+
+    w = mftl.qwtgraph.GraphUI()
+    w.set_data(trade_times, trade_rates, 'gray')
+    w.set_data(times2, rates2, 'blue')
+    w.set_data(times2, rates_fast, 'fat_red')
+    w.set_data(times2, rates_slow, 'fat_blue')
+    # ---
+
+    amount_C1 = 100.
+    amount_C2 = 0.
+
+    #return
+    trades = 0
+    last_C1 = 0
+    last_C2 = 0
+    FEE = 0.9975
+    for i, d in enumerate(rates2):
+        if i == 0: continue
+        # verkaufen, wenn fast MA
+        action = ('buy' if rates_fast[i] >= rates_slow[i] and rates_fast[i - 1] < rates_slow[i - 1] else
+                  'sell' if rates_fast[i] <= rates_slow[i] and rates_fast[i - 1] > rates_slow[i - 1] else
+                  'none')
+        if action == 'none': continue
+        if action == 'buy':
+            if amount_C1 == 0.: continue
+            new_c2 = amount_C1 / d * FEE
+            amount_C2 = new_c2
+            last_C1, amount_C1 = amount_C1, 0.
+        elif action == 'sell':
+            if amount_C2 == 0.: continue
+            new_c1 = amount_C2 * d * FEE
+            amount_C1 = new_c1
+            last_C2, amount_C2 = amount_C2, 0.
+        w.add_vmarker(times2[i], 'red' if action == 'sell' else 'green')
+        w.add_hmarker(d, 'red' if action == 'sell' else 'green')
+        trades += 1
+        print('%.4d %.7d %9.2f %11.2f %11.9f %s' % (
+            i, times2[i], amount_C1, amount_C2, d, action))
+
     w.show()
 
 
@@ -71,16 +114,16 @@ def main():
         history.load()
         min_duration = int(args.arg2) if args.arg2 else 3600
         while history.get_duration() < min_duration:
-            print('fetch %r trade history (current: %.1fh)..' % (
-                market,  history.get_duration() / 3600))
+            log.info('fetch %r trade history (current: %.1fh)..',
+                market,  history.get_duration() / 3600)
             try:
-                history.fetch_next(api=mftl.px.PxApi)
+                history.fetch_next(api=mftl.px.PxApi, max_duration=-1)
             except mftl.util.ServerError as exc:
                 log.warning('error occured: %r', exc)
                 time.sleep(1)
         history.save()
-        print('%r, #trades: %d, duration: %.1fh' % (
-            market, history.count(), history.get_duration() / 3600))
+        log.info('%r, #trades: %d, duration: %.1fh',
+            market, history.count(), history.get_duration() / 3600)
 
     elif args.cmd == 'show':
         with mftl.qwtgraph.qtapp() as app:
