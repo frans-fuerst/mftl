@@ -4,7 +4,7 @@ import logging as log
 import threading
 import os
 import time
-
+import numpy as np
 
 def get_long_name(short_name: str) -> str:
     try:
@@ -38,6 +38,12 @@ def get_long_name(short_name: str) -> str:
         return 'unknown(%s)' % short_name
 
 
+def sma(data, N):
+    N_ret = 1. / N
+    cumsum = np.cumsum(np.insert(data, 0, 0))
+    return (cumsum[N:] - cumsum[:-N]) * N_ret
+
+
 def ema(data, alpha):
     ''' returns eponential moving average
     '''
@@ -56,6 +62,20 @@ def vema(totals, amounts, a):
     smooth_totals = ema(totals, a)
     smooth_amounts = ema(amounts, a)
     return [t / c for t, c in zip(smooth_totals, smooth_amounts)]
+
+
+def trim(*lists):
+    def trim_one(l, N):
+        length = len(l)
+        if length == N: return l
+        if isinstance(l, list):
+            del l[:length - N]
+        elif isinstance(l, np.ndarray):
+            l = l[length - N:]
+        return l
+
+    min_len = min(len(x) for x in lists)
+    return (trim_one(l, min_len) for l in lists)
 
 
 def sum_trades(history: list) -> tuple:
@@ -316,7 +336,7 @@ class TradeHistory:
                       'since last update - do an update now')
             start = self.last_time()
             end = time.time() + 60
-        elif now - self.first_time() < self._history_max_duration:
+        elif max_duration or now - self.first_time() < self._history_max_duration:
             log.debug("fetch_next: we don't need to update recent parts of the "
                       "graph - fetch older data instead.")
             start = 0 if max_duration else self.first_time() - self._step_size_sec
