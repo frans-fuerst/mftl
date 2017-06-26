@@ -1,4 +1,4 @@
-from .util import get_EUR, json_mod
+from .util import get_EUR, json_mod, get_btc_rates
 
 import logging as log
 import threading
@@ -115,6 +115,7 @@ class TraderData:
         self._last_thread = None
         self._balances = {}
         self._trade_history = {}
+        self._btc_usd_price = 0.
         self._eur_price = 0.
         self._open_orders = []
         self._available_coins = {}
@@ -155,9 +156,9 @@ class TraderData:
         assert(self._called_from_same_thread())
         self._open_orders = api.get_open_orders()
 
-    def update_eur(self):
+    def update_btc_usd_rate(self):
         assert(self._called_from_same_thread())
-        self._eur_price = get_EUR()
+        self._btc_usd_price, self._eur_price = get_btc_rates()
 
     def available_coins(self) -> dict:
         return self._available_coins
@@ -174,7 +175,10 @@ class TraderData:
     def open_orders(self):
         return self._open_orders
 
-    def eur_price(self):
+    def btc_usd_price(self):
+        return self._btc_usd_price
+
+    def btc_eur_price(self):
         return self._eur_price
 
     def load(self):

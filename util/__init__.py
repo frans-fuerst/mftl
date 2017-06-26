@@ -68,3 +68,10 @@ def get_EUR():
         return json_mod.loads(fetch_http(
             'https://api.fixer.io/latest', {'url':'api.fixer.io/latest'}))
     return 1.0 / float(get_bla()['rates']['USD'])
+
+
+def get_btc_rates():
+    data = json_mod.loads(fetch_http(
+        'http://api.coindesk.com/v1/bpi/currentprice.json',
+        {'url': 'http://api.coindesk.com/v1/bpi/currentprice.json'}))['bpi']
+    return data['USD']['rate_float'], data['EUR']['rate_float']
