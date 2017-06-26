@@ -205,19 +205,23 @@ class TraderData:
         if not self._balances: return 0
         if not coin in self._balances: return 0
         if not self._trade_history: return 0
-        if coin == 'BTC': return 0
+        if coin == 'BTC': return self._balances[coin]
         history = self._trade_history['BTC_' + coin]
-        print(list(self._trade_history.keys()))
-        print(coin, self._balances[coin])
-        a = 0
+        #print(list(self._trade_history.keys()))
+        #print(coin, self._balances[coin])
+        asset = self._balances[coin]
+        cost = 0.
         for h in history:
-#            if h['type'] == 'sell': continue
-#            assert h['type'] == 'buy'
-            print(h['time'], h['type'], h['amount'], h['total'])
-            a += h['amount'] if h['type'] == 'buy' else (-h['amount'])
-#            a -= h['fee']
-        print(a/self._balances[coin] -1)
-        return 0
+            if h['type'] == 'sell': continue
+            assert h['type'] == 'buy'
+            #print(h['time'], h['type'], h['amount'], h['total'])
+            if asset > h['amount']:
+                cost += h['total']  # todo: +fee?
+                asset -= h['amount']
+            else:
+                cost += h['total'] / h['amount'] * asset  # todo: +fee?
+                break
+        return cost
 
 
     def get_current_rate(self, market):
