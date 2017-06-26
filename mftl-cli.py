@@ -32,18 +32,13 @@ def show_curve(market):
     times2 = [e['time'] - now for e in candlestick_data]
     rates2 = [(e['total_sell'] + e['total_buy']) /
               (e['amount_sell'] + e['amount_buy']) for e in candlestick_data]
-
-    w = mftl.qwtgraph.GraphUI()
-    w.set_data(trade_times, trade_rates, 'gray')
-    w.set_data(times2, rates2, 'fat_blue')
-
     rates_slow = mftl.sma(rates2, 120)
     rates_fast = mftl.sma(rates2, 20)
     times2, rates2, rates_fast, rates_slow = mftl.trim(times2, rates2, rates_fast, rates_slow)
     print(len(times2), len(rates2), len(rates_fast), len(rates_slow))
 
     w = mftl.qwtgraph.GraphUI()
-    w.set_data(trade_times, trade_rates, 'gray')
+#    w.set_data(trade_times, trade_rates, 'gray')
     w.set_data(times2, rates2, 'blue')
     w.set_data(times2, rates_fast, 'fat_red')
     w.set_data(times2, rates_slow, 'fat_blue')
