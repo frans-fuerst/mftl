@@ -20,7 +20,7 @@ def show_curve(market):
     if not th.count(): return
 
     print('%r, #trades: %d, duration: %.1fh' % (
-        market, th.count(), th.get_duration() / 3600))
+        market, th.count(), th.duration() / 3600))
 
     data = th.data()
 
@@ -37,8 +37,8 @@ def show_curve(market):
     w.set_data(trade_times, trade_rates, 'gray')
     w.set_data(times2, rates2, 'fat_blue')
 
-    rates_slow = mftl.sma(rates2, 100)
-    rates_fast = mftl.sma(rates2, 50)
+    rates_slow = mftl.sma(rates2, 120)
+    rates_fast = mftl.sma(rates2, 20)
     times2, rates2, rates_fast, rates_slow = mftl.trim(times2, rates2, rates_fast, rates_slow)
     print(len(times2), len(rates2), len(rates_fast), len(rates_slow))
 
@@ -113,17 +113,17 @@ def main():
         history = mftl.TradeHistory(args.arg1)
         history.load()
         min_duration = int(args.arg2) if args.arg2 else 3600
-        while history.get_duration() < min_duration:
+        while history.duration() < min_duration:
             log.info('fetch %r trade history (current: %.1fh)..',
-                market,  history.get_duration() / 3600)
+                market,  history.duration() / 3600)
             try:
                 history.fetch_next(api=mftl.px.PxApi, max_duration=-1)
+                history.save()
             except mftl.util.ServerError as exc:
                 log.warning('error occured: %r', exc)
                 time.sleep(1)
-        history.save()
         log.info('%r, #trades: %d, duration: %.1fh',
-            market, history.count(), history.get_duration() / 3600)
+            market, history.count(), history.duration() / 3600)
 
     elif args.cmd == 'show':
         with mftl.qwtgraph.qtapp() as app:

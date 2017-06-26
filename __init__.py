@@ -6,6 +6,9 @@ import os
 import time
 import numpy as np
 
+class DiscontiguousLists(ValueError):
+    pass
+
 def get_long_name(short_name: str) -> str:
     try:
         return {
@@ -349,15 +352,16 @@ class TradeHistory:
             log.debug("fetch_next: no need to update anything - just exit")
             return False
 
+        new_data = api.get_trade_history(*self._market.split('_'), start, end)
         try:
-            self._attach_data(api.get_trade_history(
-                *self._market.split('_'), start, end))
-            self._hdata = self.trim(self._hdata, self._history_max_duration)
-        except ValueError:
+            self._attach_data(new_data)
+        except DiscontiguousLists:
             log.warning(
                 'lists are discontiguous after update (%.2fh)- clear data',
                 (now - self.last_time()) / 3600)
-            self.clear()
+            self._hdata = new_data
+        if not max_duration:
+            self._hdata = self.trim(self._hdata,  self._history_max_duration)
 
         return True
 
@@ -402,6 +406,7 @@ class TradeHistory:
 
     @staticmethod
     def list_duration(data):
+        if not data: return 0
         return data[-1]['time'] - data[0]['time']
 
     def duration(self):
@@ -421,7 +426,7 @@ class TradeHistory:
         # bad too: [......](......)
         if (data[0]['time'] > self._hdata[-1]['time'] or
             self._hdata[0]['time'] > data[-1]['time']):
-            raise ValueError('lists are discontiguous')
+            raise DiscontiguousLists('lists are discontiguous')
 
         # check merge contains new data
         # bad: [..(..)..]
