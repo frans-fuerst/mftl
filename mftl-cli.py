@@ -11,6 +11,68 @@ import mftl
 import mftl.px
 import mftl.qwtgraph
 
+FEE = 0.9975
+
+
+class Strategy:
+    def __init__(self, fast_ma, slow_ma):
+        self._fast_ma = fast_ma
+        self._slow_ma = slow_ma
+        self._trades = []
+        self._plots = []
+
+    def feed(self, history, amount):
+        bucket_data = history.rate_buckets()
+        times = [e['time'] / 3600 for e in bucket_data]
+        rates = [(e['total_sell'] + e['total_buy']) /
+                 (e['amount_sell'] + e['amount_buy']) for e in bucket_data]
+        rates_slow = mftl.sma(rates, self._slow_ma)
+        rates_fast = mftl.sma(rates, self._fast_ma)
+        times, rates, rates_fast, rates_slow = mftl.trim(times, rates, rates_fast, rates_slow)
+
+        self._plots.append((times, ((rates, 'black'),
+                                    (rates_slow, 'fat_blue'),
+                                    (rates_fast, 'fat_red'))))
+
+        amount_C1 = amount  # amount of primary coin we start with
+        amount_C2 = 0.      # amount of secondary coin (asset) we start with
+
+        trades = 0
+        last_C1 = 0
+        last_C2 = 0
+        for i, d in enumerate(rates):
+            if i == 0: continue
+            # verkaufen, wenn fast MA
+            action = ('buy' if rates_fast[i] >= rates_slow[i] and rates_fast[i - 1] < rates_slow[i - 1] else
+                      'sell' if rates_fast[i] <= rates_slow[i] and rates_fast[i - 1] > rates_slow[i - 1] else
+                      'none')
+            if action == 'none': continue
+            if action == 'buy':
+                if amount_C1 == 0.: continue
+                new_c2 = amount_C1 / d * FEE
+                amount_C2 = new_c2
+                last_C1, amount_C1 = amount_C1, 0.
+            elif action == 'sell':
+                if amount_C2 == 0.: continue
+                new_c1 = amount_C2 * d * FEE
+                amount_C1 = new_c1
+                last_C2, amount_C2 = amount_C2, 0.
+            self._trades.append((action, times[i], d))
+            trades += 1
+            print('%.4d %.7d %9.2f %11.2f %11.9f %s' % (
+                i, times[i], amount_C1, amount_C2, d, action))
+
+
+    def plot(self):
+        w = mftl.qwtgraph.GraphUI()
+        #    w.set_data(trade_times, trade_rates, 'gray')
+        for t, plots in self._plots:
+            for curve, color in plots:
+                w.set_data(t, curve, color)
+        for a, t, v in self._trades:
+            w.add_vmarker(t, 'red' if a == 'sell' else 'green')
+            w.add_hmarker(v, 'red' if a == 'sell' else 'green')
+        w.show()
 
 def show_curve(market):
     now = time.time()
@@ -22,60 +84,16 @@ def show_curve(market):
     print('%r, #trades: %d, duration: %.1fh' % (
         market, th.count(), th.duration() / 3600))
 
-    data = th.data()
+#    data = th.data()
 
-    trade_rates = [e['total'] / e['amount'] for e in data]
-    trade_times = [e['time'] - now for e in data]
+#    trade_rates = [e['total'] / e['amount'] for e in data]
+#    trade_times = [e['time'] - now for e in data]
 
     # generate 5min-buckets
-    candlestick_data = th.rate_buckets()
-    times2 = [e['time'] - now for e in candlestick_data]
-    rates2 = [(e['total_sell'] + e['total_buy']) /
-              (e['amount_sell'] + e['amount_buy']) for e in candlestick_data]
-    rates_slow = mftl.sma(rates2, 120)
-    rates_fast = mftl.sma(rates2, 20)
-    times2, rates2, rates_fast, rates_slow = mftl.trim(times2, rates2, rates_fast, rates_slow)
-    print(len(times2), len(rates2), len(rates_fast), len(rates_slow))
+    strategy = Strategy(10, 50)
+    strategy.feed(th, 100)
+    strategy.plot()
 
-    w = mftl.qwtgraph.GraphUI()
-#    w.set_data(trade_times, trade_rates, 'gray')
-    w.set_data(times2, rates2, 'blue')
-    w.set_data(times2, rates_fast, 'fat_red')
-    w.set_data(times2, rates_slow, 'fat_blue')
-    # ---
-
-    amount_C1 = 100.
-    amount_C2 = 0.
-
-    #return
-    trades = 0
-    last_C1 = 0
-    last_C2 = 0
-    FEE = 0.9975
-    for i, d in enumerate(rates2):
-        if i == 0: continue
-        # verkaufen, wenn fast MA
-        action = ('buy' if rates_fast[i] >= rates_slow[i] and rates_fast[i - 1] < rates_slow[i - 1] else
-                  'sell' if rates_fast[i] <= rates_slow[i] and rates_fast[i - 1] > rates_slow[i - 1] else
-                  'none')
-        if action == 'none': continue
-        if action == 'buy':
-            if amount_C1 == 0.: continue
-            new_c2 = amount_C1 / d * FEE
-            amount_C2 = new_c2
-            last_C1, amount_C1 = amount_C1, 0.
-        elif action == 'sell':
-            if amount_C2 == 0.: continue
-            new_c1 = amount_C2 * d * FEE
-            amount_C1 = new_c1
-            last_C2, amount_C2 = amount_C2, 0.
-        w.add_vmarker(times2[i], 'red' if action == 'sell' else 'green')
-        w.add_hmarker(d, 'red' if action == 'sell' else 'green')
-        trades += 1
-        print('%.4d %.7d %9.2f %11.2f %11.9f %s' % (
-            i, times2[i], amount_C1, amount_C2, d, action))
-
-    w.show()
 
 
 def get_args() -> dict:
@@ -124,6 +142,7 @@ def main():
         with mftl.qwtgraph.qtapp() as app:
             for f in os.listdir():
                 if not f.startswith('trade_history'): continue
+                if args.arg1 and f.lower().find(args.arg1.lower()) < 0: continue
                 show_curve(f.split('.')[0].split('-')[1])
             app.run()
 
