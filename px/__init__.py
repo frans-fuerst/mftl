@@ -33,9 +33,19 @@ def translate_dataset(data: dict) -> dict:
         'startingAmount': float,
         'margin': float,
         'isFrozen': lambda x: x != '0',
+        'high': float,
+        'low': float,
+        'open': float,
+        'close': float,
+        'volume': float,
+        'quoteVolume': float,
+        'weightedAverage': float,
         }[key](v) for key, v in data.items()}
 
     if 'date' in data:
+        # date_str = data['date']
+        # if isinstance(date_str, int):
+            # date_str = str(date_str)
         result['time'] = (time.mktime(datetime.strptime(
             data['date'], '%Y-%m-%d %H:%M:%S').timetuple()) - time.altzone)
     return result
@@ -46,9 +56,9 @@ class PxApi:
         self._secret = secret.encode()
 
     def _private_request(self, command, req=None):
-        request_data = {**(req if req else {}),
-                        **{'command': command,
-                           'nonce': int(time.time() * 1000)}}
+        # request_data = {**(req if req else {}),
+                        # **{'command': command,
+                           # 'nonce': int(time.time() * 1000)}}
         post_data = urlencode(request_data).encode()
         sign = hmac.new(
             self._secret,
@@ -66,8 +76,8 @@ class PxApi:
 
     @staticmethod
     def _public_request(command: str, req: dict=None) -> str:
-        request_data = {**(req if req else {}),
-                        **{'command': command}}
+        # request_data = {**(req if req else {}),
+                        # **{'command': command}}
         post_data = '&'.join(['%s=%s' % (k, v) for k, v in request_data.items()])
         request = '?cilbup/moc.xeinolop//:sptth'[::-1] + post_data
         result = json_mod.loads(fetch_http(request, request_data))

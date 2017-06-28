@@ -10,7 +10,7 @@ import os
 try:
     import ujson as json_mod
 except ImportError:
-    import json_mod
+    import json as json_mod
 
 __all__ = ['set_proxies', 'fetch_http', 'get_EUR']
 

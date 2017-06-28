@@ -97,11 +97,11 @@ def sum_trades(history: list) -> tuple:
 def expand_bucket(bucket):
     amount = bucket['amount_buy'] + bucket['amount_sell']
     total = bucket['total_buy'] + bucket['total_sell']
-    return {**bucket, **{
-        'amount': amount,
-        'total': total,
-        'rate': total / amount,
-    }}
+    # return {**bucket, **{
+        # 'amount': amount,
+        # 'total': total,
+        # 'rate': total / amount,
+    # }}
 
 
 def extract_coin_data(ticker_data):
@@ -356,7 +356,7 @@ class TradeHistory:
             log.debug("fetch_next: no need to update anything - just exit")
             return False
 
-        new_data = api.get_trade_history(*self._market.split('_'), start, end)
+        # new_data = api.get_trade_history(*self._market.split('_'), start, end)
         try:
             self._attach_data(new_data)
         except DiscontiguousLists:
