@@ -14,7 +14,8 @@ import mftl.qwtgraph
 from mftl.qwtgraph import Pen
 
 FEE = 0.9975
-
+HOUR = 1 / 3600
+DAY = 1 * HOUR / 24
 
 def sliced(iterable, N):
     it = iter(iterable)
@@ -26,17 +27,19 @@ class Strategy:
         self._fast_ma = fast_ma
         self._medium_ma = medium_ma
         self._slow_ma = slow_ma
-        self._trades = []
-        self._plots = []
 
     def feed(self, history, amount):
+        trades = []
+        plots = []
         #    data = th.data()
         #    trade_rates = [e['total'] / e['amount'] for e in data]
         #    trade_times = [e['time'] - now for e in data]
 
         # generate 5min-buckets
         bucket_data = history.rate_buckets()
-        times = [e['time'] / 3600 for e in bucket_data]
+        now = bucket_data[-1]['time']
+        t_factor = 1 / 3600 / 24
+        times = [(e['time'] - now) * t_factor for e in bucket_data]
         rates = [(e['total_sell'] + e['total_buy']) /
                  (e['amount_sell'] + e['amount_buy']) for e in bucket_data]
         rates_fast = mftl.sma(rates, self._fast_ma)
@@ -45,11 +48,11 @@ class Strategy:
         times, rates, rates_fast, rates_medium, rates_slow = mftl.trim(
             times, rates, rates_fast, rates_medium, rates_slow)
 
-        self._plots.append((times, ((rates, Pen.gray_fat),
-                                    (rates_medium, Pen.dark_cyan_fat),
-                                    (rates_fast, Pen.magenta_fat),
-                                    (rates_slow, Pen.dark_yellow_fat),
-                                    )))
+        plots.append((times, ((rates, Pen.gray_fat),
+                              (rates_medium, Pen.dark_cyan_fat),
+                              (rates_fast, Pen.dark_magenta_fat),
+                              (rates_slow, Pen.dark_yellow_fat),
+                              )))
 
         amount_C1 = amount  # amount of primary coin we start with
         amount_C2 = 0.      # amount of secondary coin (asset) we start with
@@ -77,22 +80,22 @@ class Strategy:
                 new_c1 = amount_C2 * d * FEE
                 amount_C1 = new_c1
                 last_C2, amount_C2 = amount_C2, 0.
-            self._trades.append((action, times[i], d))
+            trades.append((action, times[i], d))
 #            print('%.4d %.7d %9.2f %11.2f %11.9f %s' % (
 #                i, times[i], amount_C1, amount_C2, d, action))
 
-        if self._trades and self._trades[-1][0] == 'buy':
-            del self._trades[-1]
+        if trades and trades[-1][0] == 'buy':
+            del trades[-1]
 
-        return last_C1
+        return last_C1, trades, plots
 
-    def plot(self):
-        w = mftl.qwtgraph.GraphUI()
-        for t, plots in self._plots:
-            for curve, color in plots:
+    def plot(self, market, gain, trades, plots):
+        w = mftl.qwtgraph.GraphUI('%s - %.1f%%' % (market, gain))
+        for t, p in plots:
+            for curve, color in p:
                 w.set_data(t, curve, color)
 
-        for (a1, t1, v1), (a2, t2, v2) in sliced(self._trades, 2):
+        for (a1, t1, v1), (a2, t2, v2) in sliced(trades, 2):
             w.add_vmarker(t1, Pen.dark_green)
             w.add_vmarker(t2, Pen.dark_red)
             #            w.add_hmarker(v, 'red' if a == 'sell' else 'green')
@@ -102,30 +105,26 @@ class Strategy:
 
 
 def show_curve(market):
-    now = time.time()
-
     th = mftl.TradeHistory(market)
     th.load()
     if not th.count(): return
 
     print('%r, #trades: %d, duration: %.1fh' % (
         market, th.count(), th.duration() / 3600))
-    m = (0, market, 0, 0, 0)
+    m = ((0, [],[]), market, 0, 0, 0)
 
-    #for f in range(20):
-        #for s in range(20):
+    #for s in range(20):
             #fast = f + 1
             #slow = fast + s + 1
-
-    fast = 20
-    medium = 35
-    slow = 70
+    fast = 30 #20
+    medium = 50 #35
+    slow = 250 #medium + 50 * s #70
 
     strategy = Strategy(fast, medium, slow)
     g = strategy.feed(th, 100), market, fast, medium, slow
-    m = max(g, m)
-    print(g, m)
-    strategy.plot()
+    #m = max(g, m)
+    print(g[1:], m[1:])
+    strategy.plot(market, *g[0])
 
 
 
@@ -161,7 +160,7 @@ def main():
         min_duration = int(args.arg2) if args.arg2 else 3600
         while history.duration() < min_duration:
             log.info('fetch %r trade history (current: %.1fh)..',
-                market,  history.duration() / 3600)
+                market,  history.duration() * HOUR)
             try:
                 history.fetch_next(api=mftl.px.PxApi, max_duration=-1)
                 history.save()
@@ -169,7 +168,7 @@ def main():
                 log.warning('error occured: %r', exc)
                 time.sleep(1)
         log.info('%r, #trades: %d, duration: %.1fh',
-            market, history.count(), history.duration() / 3600)
+            market, history.count(), history.duration() * HOUR)
 
     elif args.cmd == 'show':
         with mftl.qwtgraph.qtapp() as app:
