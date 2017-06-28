@@ -11,6 +11,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import mftl
 import mftl.px
 import mftl.qwtgraph
+from mftl.qwtgraph import Pen
 
 FEE = 0.9975
 
@@ -44,10 +45,10 @@ class Strategy:
         times, rates, rates_fast, rates_medium, rates_slow = mftl.trim(
             times, rates, rates_fast, rates_medium, rates_slow)
 
-        self._plots.append((times, ((rates, 'black'),
-                                    (rates_medium, 'darkCyan_fat'),
-                                    (rates_fast, 'magenta_fat'),
-                                    (rates_slow, 'blue_fat'),
+        self._plots.append((times, ((rates, Pen.gray_fat),
+                                    (rates_medium, Pen.dark_cyan_fat),
+                                    (rates_fast, Pen.magenta_fat),
+                                    (rates_slow, Pen.dark_yellow_fat),
                                     )))
 
         amount_C1 = amount  # amount of primary coin we start with
@@ -92,10 +93,10 @@ class Strategy:
                 w.set_data(t, curve, color)
 
         for (a1, t1, v1), (a2, t2, v2) in sliced(self._trades, 2):
-            w.add_vmarker(t1, 'green')
-            w.add_vmarker(t2, 'red')
+            w.add_vmarker(t1, Pen.dark_green)
+            w.add_vmarker(t2, Pen.dark_red)
             #            w.add_hmarker(v, 'red' if a == 'sell' else 'green')
-            w.add_line(t1, v1, t2, v2, 'green_fat' if v2 >= v1 else 'red_fat' )
+            w.add_line(t1, v1, t2, v2, Pen.green_fat if v2 >= v1 else Pen.red_fat)
 
         w.show()
 

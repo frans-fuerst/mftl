@@ -7,35 +7,52 @@ from PyQt4 import QtGui, QtCore, Qt
 import qwt
 from enum import Enum
 
-#class Color(Enum):
-    #white,
-    #black,
-    #red,
-    #darkRed,
-    #green,
-    #darkGreen,
-    #blue,
-    #darkBlue,
-    #cyan,
-    #darkCyan,
-    #magenta,
-    #darkMagenta,
-    #yellow,
-    #darkYellow,
-    #gray,
-    #darkGray,
-    #lightGray
+class Pen(Enum):
+    white = Qt.QPen(Qt.Qt.white, 1, Qt.Qt.SolidLine)
+    white_fat = Qt.QPen(Qt.Qt.white, 2, Qt.Qt.SolidLine)
+    black = Qt.QPen(Qt.Qt.black, 1, Qt.Qt.SolidLine)
+    black_fat = Qt.QPen(Qt.Qt.black, 2, Qt.Qt.SolidLine)
+    cyan = Qt.QPen(Qt.Qt.cyan, 1, Qt.Qt.SolidLine)
+    cyan_fat = Qt.QPen(Qt.Qt.cyan, 2, Qt.Qt.SolidLine)
+    dark_cyan = Qt.QPen(Qt.Qt.darkCyan, 1, Qt.Qt.SolidLine)
+    dark_cyan_fat = Qt.QPen(Qt.Qt.darkCyan, 2, Qt.Qt.SolidLine)
+    red = Qt.QPen(Qt.Qt.red, 1, Qt.Qt.SolidLine)
+    red_fat = Qt.QPen(Qt.Qt.red, 2, Qt.Qt.SolidLine)
+    dark_red = Qt.QPen(Qt.Qt.darkRed, 1, Qt.Qt.SolidLine)
+    dark_red_fat = Qt.QPen(Qt.Qt.darkRed, 2, Qt.Qt.SolidLine)
+    green = Qt.QPen(Qt.Qt.green, 1, Qt.Qt.SolidLine)
+    green_fat = Qt.QPen(Qt.Qt.green, 2, Qt.Qt.SolidLine)
+    dark_green = Qt.QPen(Qt.Qt.darkGreen, 1, Qt.Qt.SolidLine)
+    dark_green_fat = Qt.QPen(Qt.Qt.darkGreen, 2, Qt.Qt.SolidLine)
+    blue = Qt.QPen(Qt.Qt.blue, 1, Qt.Qt.SolidLine)
+    blue_fat = Qt.QPen(Qt.Qt.blue, 2, Qt.Qt.SolidLine)
+    dark_blue = Qt.QPen(Qt.Qt.darkBlue, 1, Qt.Qt.SolidLine)
+    dark_blue_fat = Qt.QPen(Qt.Qt.darkBlue, 2, Qt.Qt.SolidLine)
+    magenta = Qt.QPen(Qt.Qt.magenta, 1, Qt.Qt.SolidLine)
+    magenta_fat = Qt.QPen(Qt.Qt.magenta, 2, Qt.Qt.SolidLine)
+    dark_magenta = Qt.QPen(Qt.Qt.darkMagenta, 1, Qt.Qt.SolidLine)
+    dark_magenta_fat = Qt.QPen(Qt.Qt.darkMagenta, 2, Qt.Qt.SolidLine)
+    yellow = Qt.QPen(Qt.Qt.yellow, 1, Qt.Qt.SolidLine)
+    yellow_fat = Qt.QPen(Qt.Qt.yellow, 2, Qt.Qt.SolidLine)
+    dark_yellow = Qt.QPen(Qt.Qt.darkYellow, 1, Qt.Qt.SolidLine)
+    dark_yellow_fat = Qt.QPen(Qt.Qt.darkYellow, 2, Qt.Qt.SolidLine)
+    gray = Qt.QPen(Qt.Qt.gray, 1, Qt.Qt.SolidLine)
+    gray_fat = Qt.QPen(Qt.Qt.gray, 2, Qt.Qt.SolidLine)
+    dark_gray = Qt.QPen(Qt.Qt.darkGray, 1, Qt.Qt.SolidLine)
+    dark_gray_fat = Qt.QPen(Qt.Qt.darkGray, 2, Qt.Qt.SolidLine)
+    light_gray = Qt.QPen(Qt.Qt.lightGray, 1, Qt.Qt.SolidLine)
+    light_gray_fat = Qt.QPen(Qt.Qt.lightGray, 2, Qt.Qt.SolidLine)
 
 GLOBAL = []
 
 def easypen(pen):
     #  try:
+    return pen.value
     try:
         col, size = pen.split('_')
         size = 2
     except ValueError:
         col, size = pen, 1
-    col = Qt.Qt.darkYellow
     return Qt.QPen(Qt.QColor(col), size, Qt.Qt.SolidLine)
     #    except:
     #       return Qt.QPen(Qt.Qt.black, 1, Qt.Qt.SolidLine)
