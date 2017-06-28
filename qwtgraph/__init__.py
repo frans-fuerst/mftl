@@ -5,24 +5,40 @@ import signal
 import logging as log
 from PyQt4 import QtGui, QtCore, Qt
 import qwt
+from enum import Enum
+
+#class Color(Enum):
+    #white,
+    #black,
+    #red,
+    #darkRed,
+    #green,
+    #darkGreen,
+    #blue,
+    #darkBlue,
+    #cyan,
+    #darkCyan,
+    #magenta,
+    #darkMagenta,
+    #yellow,
+    #darkYellow,
+    #gray,
+    #darkGray,
+    #lightGray
 
 GLOBAL = []
 
 def easypen(pen):
+    #  try:
     try:
-        return {
-            'blue': Qt.QPen(Qt.Qt.blue, 1, Qt.Qt.SolidLine),
-            'red': Qt.QPen(Qt.Qt.red, 1, Qt.Qt.SolidLine),
-            'green': Qt.QPen(Qt.Qt.green, 1, Qt.Qt.SolidLine),
-            'gray': Qt.QPen(Qt.Qt.gray, 1, Qt.Qt.SolidLine),
-            'fat_blue': Qt.QPen(Qt.Qt.blue, 2, Qt.Qt.SolidLine),
-            'fat_red': Qt.QPen(Qt.Qt.red, 2, Qt.Qt.SolidLine),
-            'fat_green': Qt.QPen(Qt.Qt.green, 2, Qt.Qt.SolidLine),
-            'fat_gray': Qt.QPen(Qt.Qt.gray, 2, Qt.Qt.SolidLine),
-            None: Qt.QPen(Qt.Qt.black, 1, Qt.Qt.SolidLine),
-            }[pen]
-    except:
-        return Qt.QPen(Qt.Qt.black, 1, Qt.Qt.SolidLine)
+        col, size = pen.split('_')
+        size = 2
+    except ValueError:
+        col, size = pen, 1
+    col = Qt.Qt.darkYellow
+    return Qt.QPen(Qt.QColor(col), size, Qt.Qt.SolidLine)
+    #    except:
+    #       return Qt.QPen(Qt.Qt.black, 1, Qt.Qt.SolidLine)
 
 class DataPlot(qwt.QwtPlot):
 
@@ -35,6 +51,7 @@ class DataPlot(qwt.QwtPlot):
 
     def set_data(self, datax, datay, pen):
         curve = qwt.QwtPlotCurve("Curve 1")
+        curve.setRenderHint(qwt.QwtPlotItem.RenderAntialiased)
         curve.setData(datax, datay)
         curve.setPen(pen)
         curve.attach(self)
@@ -85,6 +102,9 @@ class GraphUI(QtGui.QWidget):
 
     def add_hmarker(self, pos, pen=None):
         self.plot.add_hmarker(pos, easypen(pen))
+
+    def add_line(self, x1, y1, x2, y2, pen):
+        self.plot.set_data([x1, x2], [y1, y2], easypen(pen))
 
 
 class qtapp:
