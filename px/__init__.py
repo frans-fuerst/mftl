@@ -9,6 +9,36 @@ import hashlib
 import logging as log
 from datetime import datetime
 
+def translate_dataset(data: dict) -> dict:
+    result = {key: {
+        'date': lambda x: x,
+        'type': lambda x: x,
+        'category': lambda x: x,
+        'tradeID': int,
+        'globalTradeID': int,
+        'orderNumber': int,
+        'id': int,
+        'total': float,
+        'amount': float,
+        'rate': float,
+        'fee': float,
+        'baseVolume': float,
+        'high24hr': float,
+        'highestBid': float,
+        'last': float,
+        'low24hr': float,
+        'lowestAsk': float,
+        'percentChange': float,
+        'quoteVolume': float,
+        'startingAmount': float,
+        'margin': float,
+        'isFrozen': lambda x: x != '0',
+        }[key](v) for key, v in data.items()}
+
+    if 'date' in data:
+        result['time'] = (time.mktime(datetime.strptime(
+            data['date'], '%Y-%m-%d %H:%M:%S').timetuple()) - time.altzone)
+    return result
 
 class PxApi:
     def __init__(self, key, secret):
@@ -46,38 +76,6 @@ class PxApi:
         return result
 
     @staticmethod
-    def _translate_dataset(data: dict) -> dict:
-        result = {key: {
-            'date': lambda x: x,
-            'type': lambda x: x,
-            'category': lambda x: x,
-            'tradeID': int,
-            'globalTradeID': int,
-            'orderNumber': int,
-            'id': int,
-            'total': float,
-            'amount': float,
-            'rate': float,
-            'fee': float,
-            'baseVolume': float,
-            'high24hr': float,
-            'highestBid': float,
-            'last': float,
-            'low24hr': float,
-            'lowestAsk': float,
-            'percentChange': float,
-            'quoteVolume': float,
-            'startingAmount': float,
-            'margin': float,
-            'isFrozen': lambda x: x != '0',
-            }[key](v) for key, v in data.items()}
-
-        if 'date' in data:
-            result['time'] = (time.mktime(datetime.strptime(
-                data['date'], '%Y-%m-%d %H:%M:%S').timetuple()) - time.altzone)
-        return result
-
-    @staticmethod
     def _get_trade_history(currency_pair, start=None, stop=None) -> dict:
         request = {'currencyPair': currency_pair}
         now = time.time()
@@ -87,7 +85,7 @@ class PxApi:
                           (now - (360 * 24 * 3600)) if start == 0 else
                           start),
                 'end': (now + 60) if stop is None else stop})
-        translated = (PxApi._translate_dataset(t)
+        translated = (translate_dataset(t)
                       for t in PxApi._public_request(
                           'returnTradeHistory', request))
         cleaned = [e for e in translated
@@ -101,7 +99,7 @@ class PxApi:
 
     @staticmethod
     def get_ticker() -> dict:
-        return {c: PxApi._translate_dataset(v)
+        return {c: translate_dataset(v)
                 for c, v in PxApi._public_request('returnTicker').items()}
 
     def get_balances(self) -> dict:
@@ -119,13 +117,13 @@ class PxApi:
             'cancelOrder', {'orderNumber': order_nr})
 
     def get_open_orders(self) -> dict:
-        return {c: [PxApi._translate_dataset(o) for o in order_list]
+        return {c: [translate_dataset(o) for o in order_list]
                 for c, order_list in self._private_request(
                     'returnOpenOrders', {'currencyPair': 'all'}).items()
                 if order_list}
 
     def get_order_history(self, start=1489266632) -> dict:
-        return {c: [PxApi._translate_dataset(o) for o in order_list]
+        return {c: [translate_dataset(o) for o in order_list]
                 for c, order_list in self._private_request(
                     'returnTradeHistory', {
                         'currencyPair': 'all',
